@@ -11,7 +11,7 @@ echo <<<EOT
     <link rel="stylesheet" href="https://staticfile.qnssl.com/semantic-ui/2.1.6/components/container.min.css">
     <link rel="stylesheet" href="https://staticfile.qnssl.com/semantic-ui/2.1.6/components/message.min.css">
     <link rel="stylesheet" href="https://staticfile.qnssl.com/semantic-ui/2.1.6/components/label.min.css">
-    <script src="http://libs.baidu.com/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://libs.baidu.com/jquery/2.1.4/jquery.min.js"></script>
 </head>
 
 <body>
@@ -133,6 +133,13 @@ EOT;
 
 
 echo <<<EOT
+<div style="display: flex;align-items:center;">
+<select name="authorization_type" style="font-size: 14px; padding: 2px;">
+        <option value="bearer">Authorization:Bearer</option>
+    </select>
+    &nbsp;&nbsp;&nbsp;&nbsp;token:&nbsp;&nbsp;&nbsp;&nbsp;
+    <input type="text" name="token" style="width:100%;" class="C_input" value="">
+</div>
 <table class="ui green celled striped table" >
     <thead>
         <tr><th>参数</th><th>是否必填</th><th>值</th></tr>
@@ -160,10 +167,11 @@ foreach ($rules as $key => $rule){
 EOT;
 }
 echo <<<EOT
+
     </tbody>
 </table>
 <div style="display: flex;align-items:center;">
-    <select name="request_type" style="font-size: 14px; padding: 2px;">
+    <select name="request_type" id="method" style="font-size: 14px; padding: 2px;">
         <option value="POST">POST</option>
         <option value="GET">GET</option>
     </select>
@@ -205,7 +213,7 @@ echo <<<EOT
                     data[e.name] = e.value;
                 }
             });
-            if ($("select").val() == 'POST') {
+            if ($("#method").val() == 'POST') {
                 data['_csrf'] = "$_csrf";
             }
             return data;
@@ -216,8 +224,17 @@ echo <<<EOT
             $("#submit").on("click",function(){
                 $.ajax({
                     url:$("input[name=request_url]").val(),
-                    type:$("select").val(),
+                    type:$("#method").val(),
                     data:getData(),
+                    dataType:'json',
+                    xhrFields: {
+                       withCredentials: true,
+                    },
+                    crossDomain: true,
+                    beforeSend : function(request) {
+                        request.setRequestHeader("Authorization", sessionStorage.getItem("Authorization"));
+                        request.setRequestHeader("Content-Type", 'application/form-data');
+                    },
                     success:function(res,status,xhr){
                         console.log(xhr);
                         var statu = xhr.status + ' ' + xhr.statusText;
@@ -227,11 +244,20 @@ echo <<<EOT
                         $("#json_output").show();
                     },
                     error:function(error){
-                        console.log(error)
+                        console.log(error);
+                        var statu = error.status + ' ' + error.statusText;
+                        var header = error.getAllResponseHeaders();
+                        var json_text = JSON.stringify(error.responseJSON, null, 4);    // 缩进4个空格
+                        $("#json_output").html('<pre>' + statu + '<br/>' + header + '<br/>' + json_text + '</pre>');
+                        $("#json_output").show();
                     }
                 })
             })
-
+        })
+        $(function() {
+            $('[name="token"]').on('blur',function(){
+                sessionStorage.setItem('Authorization','Bearer '+$(this).val());
+            })
         })
 
         $('#version_update').html('&nbsp; | &nbsp; <a target="_blank" href="http://www.liyangweb.com"><strong>kaopur移植至Yii2</strong></a>');
@@ -239,5 +265,5 @@ echo <<<EOT
 </body>
 </html>
 EOT;
-
+exit;
 
